@@ -1,6 +1,7 @@
 apply plugin: 'java'
 apply plugin: 'groovy'
 apply plugin: 'application'
+apply plugin: 'eclipse'
 
 version = '0.1'
 mainClassName = 'com.github.groovyclient.Runner'
