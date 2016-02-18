@@ -99,4 +99,5 @@ To retrieve the full dataype (a map), use `get` (Be aware **NOT** to use any of 
 Currently the following limitations exit:
  * Only GET requests
  * Almost no request filters are available
-This limitations will be removed over time.
+ 
+These limitations will be removed over time.
