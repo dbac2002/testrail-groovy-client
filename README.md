@@ -111,7 +111,7 @@ To delete any type:
 
 ## Limitations ##
 Currently the following limitations exit:
- * Only GET requests
+ * Missing POST requests
  * Almost no request filters are available
  
 These limitations will be removed over time.
