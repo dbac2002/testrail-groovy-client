@@ -143,7 +143,7 @@ abstract class TestRailClient extends Script {
 			client.sendPost(query, [:])
 		}
 		catch (APIException ex) {
-			println "POST failed: " + ex
+			System.err << "POST failed: " + ex
 		}
 	}
 
@@ -155,7 +155,12 @@ abstract class TestRailClient extends Script {
 	}
 
 	def getRequest(String query) {
-		client.sendGet(query)
+		try {
+			client.sendGet(query)
+		}
+		catch(APIException ex) {
+			System.err << "GET failed: " + ex
+		}
 	}
 
 	def get(QueryObject info) {
