@@ -108,6 +108,13 @@ To delete any type:
     delete test(40)
     delete run(12)
     delete section(12)
+    
+### update ###
+To update a type:
+
+    update milestone(10) with ('name' : 'a new milestone name', 'description' : 'some description')
+    update testcase(345) with ('title' : 'test case title')
+    update run(34) with ('name' : 'new run name')
 
 ## Limitations ##
 Currently the following limitations exit:
