@@ -7,7 +7,6 @@ import com.github.groovyclient.model.QueryObject.TestQueryObject
 import com.gurock.testrail.APIClient
 import com.gurock.testrail.APIException
 
-
 abstract class TestRailClient extends Script {
 	private APIClient client
 
@@ -138,9 +137,9 @@ abstract class TestRailClient extends Script {
 		postRequest(queryObject.query(QueryType.delete))
 	}
 
-	def postRequest(String query) {
+	def postRequest(String query, def dataMap=[:]) {
 		try {
-			client.sendPost(query, [:])
+			client.sendPost(query, dataMap)
 		}
 		catch (APIException ex) {
 			System.err << "POST failed: " + ex
@@ -151,6 +150,12 @@ abstract class TestRailClient extends Script {
 		[of: { typeDef ->
 				QueryObject info = typeDef instanceof Closure ? typeDef() : typeDef
 				println getRequest(info.query(QueryType.get))[property]
+			}]
+	}
+
+	def update(QueryObject type) {
+		[with : { map ->
+				postRequest(type.query(QueryType.update), map)
 			}]
 	}
 
