@@ -16,6 +16,7 @@ The project allows to execute a Groovy script with the specific DSL directly via
 ## DSL ##
 This is a non-complete overview of the current dsl, see `Example.groovy`
 
+### GET requests ###
 To display attributes of any datatypes, use `show`
 
 To retrieve the full dataype (a map), use `get` (Be aware **NOT** to use any of the keywords used in the dsl, such as `user`, `plan` or `test`)
@@ -94,6 +95,19 @@ To retrieve the full dataype (a map), use `get` (Be aware **NOT** to use any of 
     
     // show the names of all completed milestones in project #7
     show('name') of milestones(project(7), 'completed')
+
+### delete ###
+To delete any type:
+
+    delete testcase(309)
+    delete milestone(4)
+    delete entry(16, plan(15))
+    delete plan(15)
+    delete testcase(509)
+    delete project(11)
+    delete test(40)
+    delete run(12)
+    delete section(12)
 
 ## Limitations ##
 Currently the following limitations exit:
