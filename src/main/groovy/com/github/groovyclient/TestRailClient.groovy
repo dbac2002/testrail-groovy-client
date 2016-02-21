@@ -7,6 +7,7 @@ import com.github.groovyclient.model.QueryObject.TestQueryObject
 import com.gurock.testrail.APIClient
 import com.gurock.testrail.APIException
 
+
 abstract class TestRailClient extends Script {
 	private APIClient client
 
@@ -146,10 +147,11 @@ abstract class TestRailClient extends Script {
 		}
 	}
 
-	def show(property) {
+	def show(String... property) {
 		[of: { typeDef ->
 				QueryObject info = typeDef instanceof Closure ? typeDef() : typeDef
-				println getRequest(info.query(QueryType.get))[property]
+				def resp = getRequest(info.query(QueryType.get))
+				property.each { println resp[it] }
 			}]
 	}
 
