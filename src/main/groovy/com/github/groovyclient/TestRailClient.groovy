@@ -147,11 +147,25 @@ abstract class TestRailClient extends Script {
 		}
 	}
 
+	def show(QueryObject type) {
+		def res = get(type)
+
+		['name', 'title', 'id'].collect { if (res[it]) println res[it] }
+	}
+
 	def show(String... property) {
 		[of: { typeDef ->
 				QueryObject info = typeDef instanceof Closure ? typeDef() : typeDef
 				def resp = getRequest(info.query(QueryType.get))
 				property.each { println resp[it] }
+			}]
+	}
+
+	def get(String... property) {
+		[of: { typeDef ->
+				QueryObject info = typeDef instanceof Closure ? typeDef() : typeDef
+				def resp = getRequest(info.query(QueryType.get))
+				property.collect { resp[it]}
 			}]
 	}
 
@@ -171,7 +185,6 @@ abstract class TestRailClient extends Script {
 	}
 
 	def get(QueryObject info) {
-		println info
 		getRequest(info.query(QueryType.get))
 	}
 }
