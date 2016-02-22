@@ -165,7 +165,7 @@ abstract class TestRailClient extends Script {
 		[of: { typeDef ->
 				QueryObject info = typeDef instanceof Closure ? typeDef() : typeDef
 				def resp = getRequest(info.query(QueryType.get))
-				property.collect { resp[it]}
+				property.collect { resp[it] } - null
 			}]
 	}
 
