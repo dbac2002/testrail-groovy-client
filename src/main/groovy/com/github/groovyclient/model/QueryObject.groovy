@@ -7,13 +7,15 @@ import groovy.transform.TupleConstructor
 class QueryObject {
 	String name
 	String id
+	String link
 
-	QueryObject(name, id="") {
+	QueryObject(name, id="", link="") {
 		this.name = name;
 		this.id = id
+		this.link = link
 	}
 
-	def query(QueryType type) {
+	def query(QueryType type=QueryType.get) {
 		"${type}_$name/$id"
 	}
 

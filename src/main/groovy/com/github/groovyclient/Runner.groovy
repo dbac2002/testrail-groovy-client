@@ -1,7 +1,7 @@
 package com.github.groovyclient
-import com.github.groovyclient.TestRailClient;
+import com.github.groovyclient.EnhancedTestRailClient;
 
-@BaseScript(TestRailClient)
+@BaseScript(EnhancedTestRailClient)
 import groovy.transform.BaseScript;
 
 evaluate(args[0] as File)

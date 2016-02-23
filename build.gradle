@@ -3,7 +3,7 @@ apply plugin: 'groovy'
 apply plugin: 'application'
 apply plugin: 'eclipse'
 
-version = '0.1'
+version = '0.6'
 mainClassName = 'com.github.groovyclient.Runner'
 
 repositories {
@@ -21,6 +21,7 @@ dependencies {
     compile 'org.codehaus.groovy:groovy-all:2.4.5'
     compile 'com.googlecode.json-simple:json-simple:1.1.1'
 }
+
 run {
    if ( project.hasProperty("example") ) {
        args example
