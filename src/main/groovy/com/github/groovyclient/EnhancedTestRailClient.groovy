@@ -4,6 +4,7 @@ import com.github.groovyclient.model.QueryObject
 import com.github.groovyclient.model.QueryType
 import com.github.groovyclient.model.QueryObject.RunQueryObject
 import com.github.groovyclient.model.QueryObject.TestQueryObject
+import com.github.groovyclient.model.QueryObject.UserNameQueryObject
 import com.github.groovyclient.queryhandler.QueryHandler
 import com.github.groovyclient.queryhandler.QueryHandler.ConfigurationsHandler
 import com.github.groovyclient.queryhandler.QueryHandler.MilestonesHandler
@@ -12,18 +13,17 @@ import com.github.groovyclient.queryhandler.QueryHandler.ProgressStatusHandler
 import com.github.groovyclient.queryhandler.QueryHandler.TestOverviewHandler
 import com.github.groovyclient.queryhandler.QueryHandler.TestResultHandler
 import com.github.groovyclient.queryhandler.QueryHandler.TestStatusHandler
+import com.github.groovyclient.queryhandler.QueryHandler.UserNameHandler
 import com.gurock.testrail.APIClient
 import com.gurock.testrail.APIException
-
-
 
 abstract class EnhancedTestRailClient extends Script {
 	private APIClient client
 	private String url
-	private QueryHandler testQueryHandler
+	private QueryHandler queryHandler
 
 	def connect(String url) {
-		client = new APIClient(url)
+		this.client = new APIClient(url)
 		this.url = url
 	}
 
@@ -51,50 +51,63 @@ abstract class EnhancedTestRailClient extends Script {
 
 	def get(action) {
 		[with: { display, ...displays ->
-				def res = sendGet(action.query())
+				def res
+				if (action instanceof UserNameQueryObject) {
+					res = new UserNameHandler().execute(this, [action])
+				}
+				else {
+					res = sendGet(action.query())
+				}
 				new QueryResultHandler(res, display, displays).handleResult(action, baseurl())
 			},
 			of: { QueryObject... t ->
 				[with: { display, ...displays ->
-						def r = testHandler().execute(this, t.flatten())
+						def r = queryHandler().execute(this, t.flatten())
 						new QueryResultHandler(r, display, displays).handleResult(t)
 					},
 					json: {
-						testHandler().execute(this, t.flatten())
+						queryHandler().execute(this, t.flatten())
 					}]
 			},
-			json: { sendGet(action.query()) }]
+			json: {
+				if (action instanceof UserNameQueryObject) {
+					new UserNameHandler().execute(this, [action])
+				}
+				else {
+					sendGet(action.query())
+				}
+			}]
 	}
 
-	def testHandler() {
-		testQueryHandler
+	def QueryHandler queryHandler() {
+		queryHandler
 	}
 
 	def status() {
-		testQueryHandler = new TestStatusHandler()
+		queryHandler = new TestStatusHandler()
 	}
 
 	def results() {
-		testQueryHandler= new TestResultHandler()
+		queryHandler= new TestResultHandler()
 	}
 
 	def progress() {
-		testQueryHandler = new ProgressStatusHandler()
+		queryHandler = new ProgressStatusHandler()
 	}
 
 	def milestones() {
-		testQueryHandler = new MilestonesHandler()
+		queryHandler = new MilestonesHandler()
 	}
 
 	def plans() {
-		testQueryHandler = new PlansHandler()
+		queryHandler = new PlansHandler()
 	}
 
-	def projects() {
+	def QueryObject projects() {
 		new QueryObject('projects', "", "/index.php?/projects/overview/")
 	}
 
-	def baseurl() {
+	def String baseurl() {
 		url
 	}
 
@@ -108,48 +121,51 @@ abstract class EnhancedTestRailClient extends Script {
 	}
 
 	def tests(String option="") {
-		testQueryHandler = new TestOverviewHandler(option)
+		queryHandler = new TestOverviewHandler(option)
 	}
 
 	def configurations() {
-		testQueryHandler = new ConfigurationsHandler()
+		queryHandler = new ConfigurationsHandler()
 	}
 
-	def casefields() {
+	def QueryObject casefields() {
 		new QueryObject('case_fields')
 	}
 
-	def casetypes () {
+	def QueryObject casetypes () {
 		new QueryObject('case_types')
 	}
 
-	def priorities (){
+	def QueryObject priorities (){
 		new QueryObject('priorities')
 	}
 
-	def test(int id) {
+	def QueryObject test(int id) {
 		new TestQueryObject('test', "$id", '/index.php?/tests/view/')
 	}
 
-	def statuses = new QueryObject('statuses')
+	QueryObject statuses = new QueryObject('statuses')
 
 	def user(String email) {
-		new QueryObject('user', "$email")  {
-					def query(QueryType type) {
-						"get_user_by_email&email=$email"
+		if (email.contains('@')) {
+			new QueryObject('user', "$email")  {
+						def query(QueryType type) {
+							"get_user_by_email&email=$email"
+						}
 					}
-				}
+		}
+		new UserNameQueryObject('user', "$email")
 	}
 
-	def user(int id) {
+	def QueryObject user(int id) {
 		new QueryObject('user', "$id")
 	}
 
-	def run(int id) {
+	def QueryObject run(int id) {
 		new RunQueryObject('run', "$id")
 	}
 
-	def project(int id) {
+	def QueryObject project(int id) {
 		new QueryObject('project', "$id")
 	}
 

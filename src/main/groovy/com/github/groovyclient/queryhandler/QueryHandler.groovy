@@ -10,6 +10,19 @@ import com.github.groovyclient.model.QueryObject
 interface QueryHandler {
 	def execute(EnhancedTestRailClient client, List<QueryObject> queryObject)
 
+	public static class UserNameHandler implements QueryHandler {
+		def execute(EnhancedTestRailClient client, List<QueryObject> queryObject) {
+			def allUsers = client.sendGet(users().query())
+			allUsers.find { user ->
+				user.name == queryObject[0].id
+			}
+		}
+
+		def users() {
+			new QueryObject('users')
+		}
+	}
+
 	public static class ConfigurationsHandler implements QueryHandler {
 		def execute(EnhancedTestRailClient client, List<QueryObject> queryObject) {
 			client.sendGet(configsForProject(queryObject[0].id).query())
@@ -61,14 +74,16 @@ interface QueryHandler {
 
 				if (option) {
 					def statuses = client.sendGet(client.statuses.query())
-					def id = statuses.find { it['name'] == option}.id
+					def id = statuses.find { it['name'] == option }.id
 					onlyUserTests = onlyUserTests.findAll(filterByStatus.curry(id))
 				}
 				onlyUserTests
 			}
 		}
 
-		def filterByStatus = { statusId, entry -> entry['status_id'] == statusId }
+		def filterByStatus = { statusId, entry ->
+			entry['status_id'] == statusId
+		}
 
 		def filterByUser = { userId, entry ->
 			entry['assignedto_id'] != null && userId == entry['assignedto_id']

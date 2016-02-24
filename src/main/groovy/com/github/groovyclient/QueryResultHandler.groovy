@@ -5,12 +5,13 @@ import org.json.simple.JSONArray
 class QueryResultHandler {
 	def res
 	def properties
+
 	QueryResultHandler(res,  display, ... displays) {
 		this.res = res
 		properties = [display]+ displays.flatten()
 	}
 
-	def handleResult(action, baseurl=null) {
+	def handleResult(action, baseurl="") {
 		if (res instanceof JSONArray || res instanceof List) {
 			collectListTypes(action, baseurl)
 		}

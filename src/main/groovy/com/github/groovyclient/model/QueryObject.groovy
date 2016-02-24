@@ -26,4 +26,8 @@ class QueryObject {
 	@TupleConstructor(callSuper=true, includeSuperProperties=true, includeSuperFields=true)
 	static class TestQueryObject extends QueryObject {
 	}
+
+	@TupleConstructor(callSuper=true, includeSuperProperties=true, includeSuperFields=true)
+	static class UserNameQueryObject extends QueryObject {
+	}
 }
