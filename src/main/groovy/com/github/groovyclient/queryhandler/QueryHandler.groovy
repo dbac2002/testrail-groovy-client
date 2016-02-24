@@ -63,10 +63,18 @@ interface QueryHandler {
 			if (run != null) {
 				QueryObject user = queryObject[0]
 				QueryObject tests = new QueryObject('tests', "${run.id}")
+
+				def query = tests.query()
+
+				if (option) {
+					def statuses = client.sendGet(client.statuses.query())
+					def id = statuses.find { it['name'] == option }.id
+					query += "&status_id=$id"
+				}
+
 				def allTestsForRun = client.sendGet(tests.query())
-				def onlyUserTests = []
 				if (user.id.isNumber()) {
-					onlyUserTests = allTestsForRun.findAll(filterByUser.curry(user.id.toLong()))
+					allTestsForRun.findAll(filterByUser.curry(user.id.toLong()))
 				}
 				else {
 					def userObject
@@ -76,15 +84,8 @@ interface QueryHandler {
 					else {
 						userObject = client.sendGet(user.query())
 					}
-					onlyUserTests = allTestsForRun.findAll(filterByUser.curry(userObject['id'] as Long))
+					allTestsForRun.findAll(filterByUser.curry(userObject['id'] as Long))
 				}
-
-				if (option) {
-					def statuses = client.sendGet(client.statuses.query())
-					def id = statuses.find { it['name'] == option }.id
-					onlyUserTests = onlyUserTests.findAll(filterByStatus.curry(id))
-				}
-				onlyUserTests
 			}
 		}
 
