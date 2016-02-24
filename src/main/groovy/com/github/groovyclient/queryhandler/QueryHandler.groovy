@@ -4,87 +4,80 @@ import groovy.transform.TupleConstructor
 
 import com.github.groovyclient.EnhancedTestRailClient
 import com.github.groovyclient.model.QueryObject
-import com.github.groovyclient.model.QueryObject.UserNameQueryObject
 
+@TupleConstructor
+abstract class QueryHandler {
+	QueryObject baseQuery
 
+	abstract def execute(EnhancedTestRailClient client, QueryObject q1 = null, QueryObject q2 = null)
 
-interface QueryHandler {
-	def execute(EnhancedTestRailClient client, List<QueryObject> queryObject)
+	@TupleConstructor(callSuper=true, includeSuperProperties=true, includeSuperFields=true)
+	public static class DefaultQueryHandler extends QueryHandler {
+		def execute(EnhancedTestRailClient client, QueryObject q1, QueryObject q2) {
+			client.sendGet(baseQuery.query())
+		}
+	}
 
-	public static class UserNameHandler implements QueryHandler {
-		def execute(EnhancedTestRailClient client, List<QueryObject> queryObject) {
-			def allUsers = client.sendGet(users().query())
-			allUsers.find { user ->
-				user.name == queryObject[0].id
+	@TupleConstructor(callSuper=true, includeSuperProperties=true, includeSuperFields=true)
+	public static class DelegateQueryHandler extends DefaultQueryHandler {
+		def execute(EnhancedTestRailClient client, QueryObject q1, QueryObject q2) {
+			q1.queryHandler().execute(client, q1, q2)
+		}
+	}
+
+	@TupleConstructor(callSuper=true, includeSuperProperties=true, includeSuperFields=true)
+	public static class FilterQueryHandler extends DefaultQueryHandler {
+		def filterProperty
+		def attribute = 'name'
+
+		def execute(EnhancedTestRailClient client, QueryObject q1, QueryObject q2) {
+			def all = super.execute(client, q1, q2)
+			all.find { element ->
+				element[attribute] == filterProperty
+			}
+		}
+	}
+
+	@TupleConstructor(callSuper=true, includeSuperProperties=true, includeSuperFields=true)
+	public static class RunQueryHandler extends FilterQueryHandler {
+		QueryObject projects
+
+		def execute(EnhancedTestRailClient client, QueryObject q1, QueryObject q2) {
+			def projects = projects.queryHandler().execute(client)
+			projects.findResult { p ->
+				doExecute(client, p.id, q1, q2)
 			}
 		}
 
-		def users() {
-			new QueryObject('users')
+		def doExecute(EnhancedTestRailClient client, Object id, QueryObject q1, QueryObject q2) {
+			baseQuery.id = "$id"
+			super.execute(client, q1, q2)
 		}
 	}
 
-	public static class ConfigurationsHandler implements QueryHandler {
-		def execute(EnhancedTestRailClient client, List<QueryObject> queryObject) {
-			client.sendGet(configsForProject(queryObject[0].id).query())
-		}
+	@TupleConstructor(callSuper=true, includeSuperProperties=true, includeSuperFields=true)
+	public static class TestOverviewHandler extends QueryHandler {
+		String option
 
-		def configsForProject(projectId) {
-			new QueryObject('configs', "$projectId")
-		}
-	}
-
-	public static class PlansHandler implements QueryHandler {
-		def execute(EnhancedTestRailClient client, List<QueryObject> queryObject) {
-			client.sendGet(plansForProject(queryObject[0].id).query())
-		}
-
-		def plansForProject(projectId) {
-			new QueryObject('plans', "$projectId")
-		}
-	}
-
-	public static class MilestonesHandler implements QueryHandler {
-		def execute(EnhancedTestRailClient client, List<QueryObject> queryObject) {
-			client.sendGet(milestonesForProject(queryObject[0].id).query())
-		}
-
-		def milestonesForProject(projectId) {
-			new QueryObject('milestones', "$projectId")
-		}
-	}
-
-	@TupleConstructor
-	public static class TestOverviewHandler implements QueryHandler {
-		def option
-
-		def execute(EnhancedTestRailClient client, List<QueryObject> queryObject) {
-			QueryObject run = queryObject[1]
+		def execute(EnhancedTestRailClient client, QueryObject user, QueryObject run) {
 			if (run != null) {
-				QueryObject user = queryObject[0]
-				QueryObject tests = new QueryObject('tests', "${run.id}")
+				baseQuery.id = run.id ? run.id : run.queryHandler().execute(client, user, run).id
 
-				def query = tests.query()
+				def query = baseQuery.query()
 
 				if (option) {
-					def statuses = client.sendGet(client.statuses.query())
+					def statuses = new QueryObject('statuses').queryHandler().execute(client, user, run)
 					def id = statuses.find { it['name'] == option }.id
 					query += "&status_id=$id"
 				}
 
-				def allTestsForRun = client.sendGet(tests.query())
+				def allTestsForRun = client.sendGet(query)
 				if (user.id.isNumber()) {
 					allTestsForRun.findAll(filterByUser.curry(user.id.toLong()))
 				}
 				else {
-					def userObject
-					if (user instanceof UserNameQueryObject) {
-						userObject = new UserNameHandler().execute(client, [user])
-					}
-					else {
-						userObject = client.sendGet(user.query())
-					}
-					allTestsForRun.findAll(filterByUser.curry(userObject['id'] as Long))
+					def userObject = user.id ? user : user.queryHandler().execute(client)
+					allTestsForRun.findAll(filterByUser.curry(userObject.id as Long))
 				}
 			}
 		}
@@ -98,45 +91,31 @@ interface QueryHandler {
 		}
 	}
 
-	public static class ProgressStatusHandler implements QueryHandler {
-		def execute(EnhancedTestRailClient client, List<QueryObject> queryObject) {
-			def runResult = client.sendGet(queryObject[0].query())
-			def allCounts = runResult.collect() {
+	@TupleConstructor(callSuper=true, includeSuperProperties=true, includeSuperFields=true)
+	public static class ProgressStatusHandler extends DefaultQueryHandler {
+		def execute(EnhancedTestRailClient client, QueryObject q1, QueryObject q2) {
+			def result = q1.queryHandler().execute(client, q1, q2)
+			def allCounts = result.collect() {
 				if (it.key =~ /.+_count/) {
 					it.key
 				}
 			}
-			def onlyCounts = runResult.subMap(allCounts)
+			def onlyCounts = result.subMap(allCounts)
 			double total = 0
 			onlyCounts.each  { total += it.value }
 			double passedPercentage = onlyCounts['passed_count'] / total
 			onlyCounts << ['passed_percentage' : passedPercentage * 100 as int]
 		}
-
-		def resultsForRun(runId) {
-			new QueryObject('results_for_run', "$runId")
-		}
 	}
 
-	public static class TestStatusHandler implements QueryHandler {
-		def execute(EnhancedTestRailClient client, List<QueryObject> queryObject) {
-			def testResult = client.sendGet(queryObject[0].query())
-			def statuses = client.sendGet(statuses().query())
+	@TupleConstructor(callSuper=true, includeSuperProperties=true, includeSuperFields=true)
+	public static class TestStatusHandler extends DefaultQueryHandler {
+		def execute(EnhancedTestRailClient client, QueryObject q1, QueryObject q2) {
+			def testResult = q1.queryHandler().execute(client, q1, q2)
+			def statuses = super.execute(client, q1, q2)
 			statuses.find { status ->
 				status['id'] == testResult['status_id']
 			}
-		}
-
-		def statuses = { new QueryObject('statuses') }
-	}
-
-	public static class TestResultHandler implements QueryHandler {
-		def execute(EnhancedTestRailClient client, List<QueryObject> queryObject) {
-			client.sendGet(results(queryObject[0].id).query())
-		}
-
-		def results(testId)  {
-			new QueryObject('results', "$testId")
 		}
 	}
 }

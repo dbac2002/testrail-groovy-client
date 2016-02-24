@@ -3,7 +3,7 @@ apply plugin: 'groovy'
 apply plugin: 'application'
 apply plugin: 'eclipse'
 
-version = '0.7'
+version = '0.8.1'
 mainClassName = 'com.github.groovyclient.Runner'
 
 repositories {

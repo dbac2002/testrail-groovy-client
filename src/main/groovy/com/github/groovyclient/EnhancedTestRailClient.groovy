@@ -4,23 +4,19 @@ import com.github.groovyclient.model.QueryObject
 import com.github.groovyclient.model.QueryType
 import com.github.groovyclient.model.QueryObject.RunQueryObject
 import com.github.groovyclient.model.QueryObject.TestQueryObject
-import com.github.groovyclient.model.QueryObject.UserNameQueryObject
 import com.github.groovyclient.queryhandler.QueryHandler
-import com.github.groovyclient.queryhandler.QueryHandler.ConfigurationsHandler
-import com.github.groovyclient.queryhandler.QueryHandler.MilestonesHandler
-import com.github.groovyclient.queryhandler.QueryHandler.PlansHandler
+import com.github.groovyclient.queryhandler.QueryHandler.DelegateQueryHandler
+import com.github.groovyclient.queryhandler.QueryHandler.FilterQueryHandler
 import com.github.groovyclient.queryhandler.QueryHandler.ProgressStatusHandler
+import com.github.groovyclient.queryhandler.QueryHandler.RunQueryHandler
 import com.github.groovyclient.queryhandler.QueryHandler.TestOverviewHandler
-import com.github.groovyclient.queryhandler.QueryHandler.TestResultHandler
 import com.github.groovyclient.queryhandler.QueryHandler.TestStatusHandler
-import com.github.groovyclient.queryhandler.QueryHandler.UserNameHandler
 import com.gurock.testrail.APIClient
 import com.gurock.testrail.APIException
 
 abstract class EnhancedTestRailClient extends Script {
 	private APIClient client
 	private String url
-	private QueryHandler queryHandler
 
 	def connect(String url) {
 		this.client = new APIClient(url)
@@ -46,61 +42,68 @@ abstract class EnhancedTestRailClient extends Script {
 	}
 
 	def update(QueryObject type) {
-		[with: { dataMap -> sendPost(type.query(QueryType.update), dataMap)	}]
-	}
-
-	def get(action) {
-		[with: { display, ...displays ->
-				def res
-				if (action instanceof UserNameQueryObject) {
-					res = new UserNameHandler().execute(this, [action])
-				}
-				else {
-					res = sendGet(action.query())
-				}
-				new QueryResultHandler(res, display, displays).handleResult(action, baseurl())
-			},
-			of: { QueryObject... t ->
-				[with: { display, ...displays ->
-						def r = queryHandler().execute(this, t.flatten())
-						new QueryResultHandler(r, display, displays).handleResult(t)
-					},
-					json: {
-						queryHandler().execute(this, t.flatten())
-					}]
-			},
-			json: {
-				if (action instanceof UserNameQueryObject) {
-					new UserNameHandler().execute(this, [action])
-				}
-				else {
-					sendGet(action.query())
-				}
+		[with: { dataMap ->
+				sendPost(type.query(QueryType.update), dataMap)
 			}]
 	}
 
-	def QueryHandler queryHandler() {
-		queryHandler
-	}
+	def get(QueryObject action) {
+		def actionQueryHandler = action.queryHandler()
 
-	def status() {
-		queryHandler = new TestStatusHandler()
+		[with: { display, ...displays ->
+				def result = actionQueryHandler.execute(this)
+				new QueryResultHandler(result, display, displays).handleResult()
+			},
+			of: { QueryObject additional1, QueryObject additional2=null  ->
+				[with: { display, ...displays ->
+						def result = actionQueryHandler.execute(this, additional1, additional2)
+						new QueryResultHandler(result, display, displays).handleResult()
+					},
+					json: {
+						actionQueryHandler.execute(this, additional1, additional2)
+					}]
+			},
+			json: { actionQueryHandler.execute(this) }]
 	}
 
 	def results() {
-		queryHandler= new TestResultHandler()
+		new QueryObject('results') {
+					QueryHandler queryHandler() {
+						new DelegateQueryHandler(this)
+					}
+				}
+	}
+
+	def status() {
+		new QueryObject('statuses') {
+					QueryHandler queryHandler() {
+						new TestStatusHandler(this)
+					}
+				}
 	}
 
 	def progress() {
-		queryHandler = new ProgressStatusHandler()
+		new QueryObject('run') {
+					QueryHandler queryHandler() {
+						new ProgressStatusHandler(this)
+					}
+				}
 	}
 
 	def milestones() {
-		queryHandler = new MilestonesHandler()
+		new QueryObject('milestones') {
+					QueryHandler queryHandler() {
+						new DelegateQueryHandler(this)
+					}
+				}
 	}
 
 	def plans() {
-		queryHandler = new PlansHandler()
+		new QueryObject('plans') {
+					QueryHandler queryHandler() {
+						new DelegateQueryHandler(this)
+					}
+				}
 	}
 
 	def QueryObject projects() {
@@ -121,11 +124,19 @@ abstract class EnhancedTestRailClient extends Script {
 	}
 
 	def tests(String option="") {
-		queryHandler = new TestOverviewHandler(option)
+		new QueryObject('tests') {
+					QueryHandler queryHandler() {
+						new TestOverviewHandler(this, option)
+					}
+				}
 	}
 
 	def configurations() {
-		queryHandler = new ConfigurationsHandler()
+		new QueryObject('configs') {
+					QueryHandler queryHandler() {
+						new DelegateQueryHandler(this)
+					}
+				}
 	}
 
 	def QueryObject casefields() {
@@ -144,21 +155,39 @@ abstract class EnhancedTestRailClient extends Script {
 		new TestQueryObject('test', "$id", '/index.php?/tests/view/')
 	}
 
-	QueryObject statuses = new QueryObject('statuses')
-
-	def user(String email) {
+	def QueryObject user(String email) {
 		if (email.contains('@')) {
-			new QueryObject('user', "$email")  {
+			return new QueryObject('user', "$email")  {
 						def query(QueryType type) {
 							"get_user_by_email&email=$email"
 						}
 					}
 		}
-		new UserNameQueryObject('user', "$email")
+		new QueryObject('users') {
+					QueryHandler queryHandler() {
+						new FilterQueryHandler(this, email)
+					}
+				}
+	}
+
+	def QueryObject project(String name) {
+		new QueryObject('projects') {
+					QueryHandler queryHandler() {
+						new FilterQueryHandler(this, name)
+					}
+				}
 	}
 
 	def QueryObject user(int id) {
 		new QueryObject('user', "$id")
+	}
+
+	def QueryObject run(String title) {
+		new QueryObject('runs') {
+					QueryHandler queryHandler() {
+						new RunQueryHandler(this, title, 'name', projects())
+					}
+				}
 	}
 
 	def QueryObject run(int id) {
