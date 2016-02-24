@@ -4,6 +4,7 @@ import groovy.transform.TupleConstructor
 
 import com.github.groovyclient.EnhancedTestRailClient
 import com.github.groovyclient.model.QueryObject
+import com.github.groovyclient.model.QueryObject.UserNameQueryObject
 
 
 
@@ -68,7 +69,13 @@ interface QueryHandler {
 					onlyUserTests = allTestsForRun.findAll(filterByUser.curry(user.id.toLong()))
 				}
 				else {
-					def userObject = client.sendGet(user.query())
+					def userObject
+					if (user instanceof UserNameQueryObject) {
+						userObject = new UserNameHandler().execute(client, [user])
+					}
+					else {
+						userObject = client.sendGet(user.query())
+					}
 					onlyUserTests = allTestsForRun.findAll(filterByUser.curry(userObject['id'] as Long))
 				}
 
