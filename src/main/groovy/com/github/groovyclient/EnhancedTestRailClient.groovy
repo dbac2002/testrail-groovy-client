@@ -66,6 +66,8 @@ abstract class EnhancedTestRailClient extends Script {
 			json: { actionQueryHandler.execute(this) }]
 	}
 
+	QueryObject results = results()
+
 	def results() {
 		new QueryObject('results') {
 					QueryHandler queryHandler() {
@@ -73,6 +75,8 @@ abstract class EnhancedTestRailClient extends Script {
 					}
 				}
 	}
+
+	QueryObject status = status()
 
 	def status() {
 		new QueryObject('statuses') {
@@ -82,6 +86,8 @@ abstract class EnhancedTestRailClient extends Script {
 				}
 	}
 
+	QueryObject progress = progress()
+
 	def progress() {
 		new QueryObject('run') {
 					QueryHandler queryHandler() {
@@ -89,6 +95,8 @@ abstract class EnhancedTestRailClient extends Script {
 					}
 				}
 	}
+
+	QueryObject milestones = milestones()
 
 	def milestones() {
 		new QueryObject('milestones') {
@@ -98,6 +106,8 @@ abstract class EnhancedTestRailClient extends Script {
 				}
 	}
 
+	QueryObject plans = plans()
+
 	def plans() {
 		new QueryObject('plans') {
 					QueryHandler queryHandler() {
@@ -105,6 +115,8 @@ abstract class EnhancedTestRailClient extends Script {
 					}
 				}
 	}
+
+	QueryObject projects = projects()
 
 	def QueryObject projects() {
 		new QueryObject('projects', "", "/index.php?/projects/overview/")
@@ -123,6 +135,7 @@ abstract class EnhancedTestRailClient extends Script {
 		}
 	}
 
+
 	def tests(String option="") {
 		new QueryObject('tests') {
 					QueryHandler queryHandler() {
@@ -138,6 +151,12 @@ abstract class EnhancedTestRailClient extends Script {
 					}
 				}
 	}
+
+	QueryObject tests = tests("")
+	QueryObject configurations = configurations()
+	QueryObject casefields = casefields()
+	QueryObject casetypes = casetypes()
+	QueryObject priorities = priorities()
 
 	def QueryObject casefields() {
 		new QueryObject('case_fields')
